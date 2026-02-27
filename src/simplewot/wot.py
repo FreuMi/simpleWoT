@@ -1,9 +1,8 @@
-import td_parser
+from . import td_parser
 from rdflib import Literal
-import ble_gap
-import ble_gatt
-import binary_codec
-import sys
+from .bindings import ble_gap
+from .bindings import ble_gatt
+from .codecs import binary_codec
 
 class Thing:
     def __init__(self, td_identifier: str):
