@@ -1,7 +1,7 @@
 from rdflib import Graph, Literal
 
 def decode(raw_bytes: bytes, td_graph: Graph, attributeName: str):
-    schema = get_schema(td_graph, attributeName)
+    schema = get_schema_properties(td_graph, attributeName)
 
     if schema["type"].lower() == "objectschema":
         result_object = {}
@@ -89,7 +89,6 @@ def decode_number_or_int(raw_bytes: bytes, field: dict) -> int | float:
 
     return value
 
-
 def extract_bits(raw_bytes: bytes, bit_offset: int, bit_length: int) -> int:
     """
     Extract bit_length bits starting at bit_offset from raw_bytes.
@@ -109,6 +108,37 @@ def extract_bits(raw_bytes: bytes, bit_offset: int, bit_length: int) -> int:
 
     return (value >> shift) & mask
 
+##########################################################################################
+
+def encode(value, td_graph: Graph, attributeName: str):
+
+    schema = get_schema_properties(td_graph, attributeName)
+    if schema["type"] == None:
+        schema = get_action_schema(td_graph, attributeName)
+
+    # Add defaults
+    if schema["byteOrder"] == None:
+        schema["byteOrder"] = "little"
+
+    if schema["signed"] == None:
+        schema["signed"] = True
+
+    if schema["bitLength"] == None:
+        schema["bitLength"] = 8
+
+    # Calculate byte length
+    byteLength = int(schema["bitLength"]/8)
+
+    if schema["type"].lower() == "integerschema":
+        raw_bytes = int(value).to_bytes(byteLength, byteorder= schema["byteOrder"], signed=schema["signed"])
+        return raw_bytes
+    
+    elif schema["type"].lower() == "numberschema":
+        pass
+
+##########################################################################################
+def to_bool(value: str) -> bool:
+        return value.strip().lower() == "true"
 
 def to_signed(value: int, bit_length: int) -> int:
     sign_bit = 1 << (bit_length - 1)
@@ -118,7 +148,7 @@ def to_signed(value: int, bit_length: int) -> int:
 
 
 # Function to extract schema
-def get_schema(g: Graph, attributeName: str):
+def get_schema_properties(g: Graph, attributeName: str):
     query = """
     PREFIX td:          <https://www.w3.org/2019/wot/td#>
     PREFIX json-schema: <https://www.w3.org/2019/wot/json-schema#>
@@ -242,3 +272,66 @@ def get_schema(g: Graph, attributeName: str):
             prop.pop("bitLength", None)
 
     return result
+
+
+def get_action_schema(g: Graph, action_name: str):
+    query = """
+    PREFIX td:          <https://www.w3.org/2019/wot/td#>
+    PREFIX json-schema: <https://www.w3.org/2019/wot/json-schema#>
+    PREFIX bdo:         <https://paul.ti.rw.fau.de/~jo00defe/ble/bdo#>
+
+    SELECT ?schemaType ?const ?format ?description
+           ?byteLength ?bitLength ?bitOffset ?byteOrder ?signed ?scale ?valueAdd
+    WHERE {
+      ?thing td:hasActionAffordance ?action .
+      ?action td:name ?name ;
+              td:hasInputSchema ?schema .
+
+      ?schema a ?schemaType .
+
+      OPTIONAL { ?schema json-schema:const ?const . }
+      OPTIONAL { ?schema json-schema:format ?format . }
+      OPTIONAL { ?schema td:description ?description . }
+
+      OPTIONAL { ?schema bdo:bytelength ?byteLength . }
+      OPTIONAL { ?schema bdo:bitLength ?bitLength . }
+      OPTIONAL { ?schema bdo:bitOffset ?bitOffset . }
+      OPTIONAL { ?schema bdo:byteOrder ?byteOrder . }
+      OPTIONAL { ?schema bdo:signed ?signed . }
+      OPTIONAL { ?schema bdo:scale ?scale . }
+      OPTIONAL { ?schema bdo:valueAdd ?valueAdd . }
+    }
+    """
+
+    rows = list(g.query(query, initBindings={"name": Literal(action_name)}))
+    if not rows:
+        return None
+
+    row = rows[0]
+
+    def local_name(term):
+        if term is None:
+            return None
+        text = str(term)
+        if "#" in text:
+            return text.rsplit("#", 1)[-1]
+        return text.rsplit("/", 1)[-1]
+
+    def to_py(value):
+        if value is None:
+            return None
+        return value.toPython() if hasattr(value, "toPython") else value
+
+    return {
+        "type": local_name(row.schemaType),
+        "const": to_py(row.const),
+        "format": to_py(row.format),
+        "description": to_py(row.description),
+        "byteLength": to_py(row.byteLength),
+        "bitLength": to_py(row.bitLength),
+        "bitOffset": to_py(row.bitOffset),
+        "byteOrder": to_py(row.byteOrder),
+        "signed": to_py(row.signed),
+        "scale": to_py(row.scale),
+        "valueAdd": to_py(row.valueAdd),
+    }

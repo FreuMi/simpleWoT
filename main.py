@@ -11,9 +11,11 @@ async def main():
     #thing = wot.Thing("./ruuviAir.td.json")
     #value = await thing.read("sensors")
 
-    thing = wot.Thing("./xiaomiFlowerCare.td.json")
+    #thing = wot.Thing("./ruuviTag.td.json")
+    #value = await thing.read("sensors")
 
-    await thing.write("A1FX")
+    thing = wot.Thing("./xiaomiFlowerCare.td.json")
+    await thing.write("enable", "40991")
     value = await thing.read("measurements")
 
     print(value)

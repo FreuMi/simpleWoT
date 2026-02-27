@@ -83,11 +83,12 @@
       "description": "Enable read mode",
 
       "input": {
-        "type": "string",
-        "format": "hex",
-        "const": "A01F",
-        "bdo:bytelength": 2,
-        "description": "The command 'A01F' enables read mode."
+        "type": "integer",
+        "const": "40991",
+        "bdo:bitLength": 16,
+        "bdo:byteOrder": "big",
+        "bdo:signed": false,
+        "description": "The command '40991' enables read mode."
       },
 
       "forms": [

@@ -56,7 +56,7 @@ class AutoDisconnectBleClient:
             self._reset_idle_timer()
             return bytes(data)
 
-    async def read_once_via_notify(self, forms: dict, timeout: float | None = None) -> bytes:
+    async def read_once_via_notify(self, forms: dict, timeout: float = 15.0) -> bytes:
         mac, service, char = parse_forms_target(forms)
         async with self._lock:
             await self.connect()
@@ -85,40 +85,9 @@ class AutoDisconnectBleClient:
 
             return raw_bytes
 
-    async def write(self, char: str, data: bytes, response: bool = True) -> None:
+    async def write(self, forms: dict, data: bytes, response: bool = True) -> None:
+        mac, service, char = parse_forms_target(forms)
         async with self._lock:
             await self.connect()
             await self.client.write_gatt_char(char, data, response=response)
             self._reset_idle_timer()
-
-    async def write_then_notify(
-        self,
-        write_char: str,
-        payload: bytes,
-        notify_char: str,
-        timeout: float = 5.0,
-    ) -> bytes:
-        async with self._lock:
-            await self.connect()
-
-            got_value = asyncio.Event()
-            raw_bytes: bytes | None = None
-
-            def handler(sender, data: bytearray):
-                nonlocal raw_bytes
-                raw_bytes = bytes(data)
-                got_value.set()
-                self._reset_idle_timer()
-
-            await self.client.start_notify(notify_char, handler)
-            try:
-                await self.client.write_gatt_char(write_char, payload, response=True)
-                await asyncio.wait_for(got_value.wait(), timeout=timeout)
-            finally:
-                await self.client.stop_notify(notify_char)
-                self._reset_idle_timer()
-
-            if raw_bytes is None:
-                raise RuntimeError("No notification received")
-
-            return raw_bytes

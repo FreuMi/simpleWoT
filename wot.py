@@ -3,6 +3,7 @@ from rdflib import Literal
 import ble_gap
 import ble_gatt
 import binary_codec
+import sys
 
 class Thing:
     def __init__(self, td_identifier: str):
@@ -32,7 +33,7 @@ class Thing:
 
             # Also notify can be read
             if forms["methodName"].lower() == "notify":
-                raw_bytes = await ble_gatt.read_once_via_notify(forms)
+                raw_bytes = await self.client.read_once_via_notify(forms)
 
             elif forms["methodName"].lower() == "read":
                 raw_bytes = await self.client.read(forms)
@@ -44,8 +45,6 @@ class Thing:
         if raw_bytes == None:
             raise Exception("No data received.")
         
-        print(raw_bytes)
-
         ####### DECODE DATA #######
         data = None
         if forms["contentType"] == "application/x.binary-data-stream":
@@ -57,8 +56,34 @@ class Thing:
         return data
 
             
-    def write(self, attributeName: str, value):
-        pass
+    async def write(self, attributeName: str, value):
+        ################
+        # Extract Forms
+        forms = self.get_forms(attributeName)
+
+        ####### ENCODE DATA #######
+        raw_bytes = None
+        if forms["contentType"] == "application/x.binary-data-stream":
+            raw_bytes = binary_codec.encode(value, self.td_graph, attributeName)
+        else:
+            print("Content-Type not supported")
+            raise Exception()
+        
+        ####### READ DATA #######
+        # Check protocol
+        protocol = forms["target"].split("://")[0]
+
+        if (protocol == "gatt"):
+            if self.client == None:
+                self.client = ble_gatt.AutoDisconnectBleClient(forms)
+
+            # Write data separate if response is needed
+            if forms["methodName"].lower() == "write-without-response":
+                raw_bytes = await self.client.write(forms, raw_bytes, False)
+            elif forms["methodName"].lower() == "write":
+                raw_bytes = await self.client.write(forms, raw_bytes, True)
+            else:
+                raise Exception("Operation not supported.")
 
     def subscribe(self, attributeName: str):
         pass
