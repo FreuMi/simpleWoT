@@ -1,0 +1,103 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "sbo": "https://paul.ti.rw.fau.de/~jo00defe/ble/sbo#",
+      "bdo": "https://paul.ti.rw.fau.de/~jo00defe/ble/bdo#",
+      "qudt": "https://qudt.org/schema/qudt/",
+      "qudtUnit": "https://qudt.org/vocab/unit/"
+    }
+  ],
+  "title": "Flower",
+  "description": "A Xiaomi Flower Care Sensor.",
+  "securityDefinitions": {
+    "nosec_sc": {
+      "scheme": "nosec"
+    }
+  },
+  "@type": "Thing",
+  "security": ["nosec_sc"],
+
+  "sbo:hasGAPRole": "sbo:Peripheral",
+  "sbo:isConnectable": true,
+  "sbo:hasAdvertisingIntervall": {
+    "qudt:numericValue": 2000,
+    "qutdUnit:unit": "qudtUnit:MilliSEC"
+  },
+
+  "properties": {
+    "measurements": {
+      "type": "object",
+      "observable": false,
+      "readOnly": true,
+      "writeOnly": false,
+      "properties": {
+        "temperature": {
+          "type": "number",
+          "bdo:bitOffset": 0,
+          "bdo:bitLength": 16,
+          "bdo:byteOrder": "little",
+          "bdo:signed": true,
+          "bdo:scale": 0.1
+        },
+        "brightness": {
+          "type": "number",
+          "bdo:bitOffset": 24,
+          "bdo:bitLength": 32,
+          "bdo:byteOrder": "little",
+          "bdo:signed": false,
+          "description": "The current brightness value."
+        },
+        "moisture": {
+          "type": "integer",
+          "bdo:bitOffset": 56,
+          "bdo:bitLength": 8,
+          "bdo:signed": false,
+          "description": "The current moisture value."
+        },
+        "conductivity": {
+          "type": "integer",
+          "bdo:bitOffset": 64,
+          "bdo:bitLength": 16,
+          "bdo:byteOrder": "little",
+          "bdo:signed": false,
+          "description": "The current conductivity value."
+        }
+      },
+      "forms": [
+        {
+          "href": "gatt://5C-85-7E-B0-25-EB/00001204-0000-1000-8000-00805f9b34fb/00001a01-0000-1000-8000-00805f9b34fb",
+          "op": "readproperty",
+          "htv:methodName": "read",
+          "contentType": "application/x.binary-data-stream"
+        }
+      ]
+    }
+  },
+  "actions": {
+    "enable": {
+      "type": "string",
+      "observable": false,
+      "readOnly": false,
+      "writeOnly": true,
+      "description": "Enable read mode",
+
+      "input": {
+        "type": "string",
+        "format": "hex",
+        "const": "A01F",
+        "bdo:bytelength": 2,
+        "description": "The command 'A01F' enables read mode."
+      },
+
+      "forms": [
+        {
+          "href": "gatt://5C-85-7E-B0-25-EB/00001204-0000-1000-8000-00805f9b34fb/00001a00-0000-1000-8000-00805f9b34fb",
+          "op": "invokeaction",
+          "htv:methodName": "write",
+          "contentType": "application/x.binary-data-stream"
+        }
+      ]
+    }
+  }
+}

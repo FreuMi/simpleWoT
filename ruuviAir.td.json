@@ -1,0 +1,102 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "bdo": "https://paul.ti.rw.fau.de/~jo00defe/ble/bdo#",
+      "htv": "http://www.w3.org/2011/http#"
+    }
+  ],
+  "title": "RuuviAir",
+  "securityDefinitions": {
+    "nosec_sc": {
+      "scheme": "nosec"
+    }
+  },
+  "security": "nosec_sc",
+  "properties": {
+    "sensors": {
+      "type": "object",
+      "readOnly": true,
+      "properties": {
+        "temperature": {
+          "type": "number",
+          "bdo:bitOffset": 8,
+          "bdo:bitLength": 16,
+          "bdo:byteOrder": "big",
+          "bdo:signed": true,
+          "bdo:scale": 0.005
+        },
+        "humidity": {
+          "type": "number",
+          "bdo:bitOffset": 24,
+          "bdo:bitLength": 16,
+          "bdo:byteOrder": "big",
+          "bdo:signed": false,
+          "bdo:scale": 0.0025
+        },
+        "pressure": {
+          "type": "integer",
+          "bdo:bitOffset": 40,
+          "bdo:bitLength": 16,
+          "bdo:byteOrder": "big",
+          "bdo:signed": false,
+          "bdo:valueAdd": 50000
+        },
+        "pm25": {
+          "type": "number",
+          "bdo:bitOffset": 56,
+          "bdo:bitLength": 16,
+          "bdo:byteOrder": "big",
+          "bdo:signed": false,
+          "bdo:scale": 0.1
+        },
+        "co2": {
+          "type": "integer",
+          "bdo:bitOffset": 72,
+          "bdo:bitLength": 16,
+          "bdo:byteOrder": "big",
+          "bdo:signed": false
+        },
+        "voc": {
+          "type": "integer",
+          "bdo:signed": false,
+          "bdo:fragments": [
+            {
+              "bdo:index": 0,
+              "bdo:bitOffset": 88,
+              "bdo:bitLength": 8
+            },
+            {
+              "bdo:index": 1,
+              "bdo:bitOffset": 129,
+              "bdo:bitLength": 1
+            }
+          ]
+        },
+        "nox": {
+          "type": "integer",
+          "bdo:signed": false,
+          "bdo:fragments": [
+            {
+              "bdo:index": 0,
+              "bdo:bitOffset": 96,
+              "bdo:bitLength": 8
+            },
+            {
+              "bdo:index": 1,
+              "bdo:bitOffset": 128,
+              "bdo:bitLength": 1
+            }
+          ]
+        }
+      },
+      "forms": [
+        {
+          "href": "gap://D9-71-7F-26-54-EF",
+          "contentType": "application/x.binary-data-stream",
+          "htv:methodName": "GET"
+        }
+      ]
+    }
+  }
+}
