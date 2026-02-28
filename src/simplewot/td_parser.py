@@ -49,7 +49,7 @@ def parse_td(rdf_data: str) -> Graph:
             # If parsing succeeds without an exception
             rdf_graph = temp_graph
             parsed_successfully = True
-            print(f"Successfully parsed input data as {format}.")
+            #print(f"Successfully parsed input data as {format}.")
             break
         except Exception as e:
             print(f"Attempt to parse as '{format}' failed: {e}")
@@ -57,7 +57,7 @@ def parse_td(rdf_data: str) -> Graph:
 
     if not parsed_successfully:
         raise TypeError(f"Input data could not be parsed in any supported RDF format: {supported_formats}")
-    print(f"Found {len(rdf_graph)} triples.")
+    #print(f"Found {len(rdf_graph)} triples.")
 
     # Bind namespaces
     TD = rdflib.Namespace("https://www.w3.org/2019/wot/td#")
@@ -264,5 +264,5 @@ def add_td_defaults(td_graph: Graph) -> Graph:
             """
         )
     
-    print(f"With defaults: {len(td_graph)} triples.")
+    #print(f"With defaults: {len(td_graph)} triples.")
     return td_graph

@@ -15,6 +15,7 @@ class AutoDisconnectBleClient:
         mac, service, char = parse_forms_target(forms)
         self.mac = mac
         self.idle_timeout = idle_timeout
+        self._shutting_down = False
 
         self.client = BleakClient(mac)
 
@@ -27,6 +28,8 @@ class AutoDisconnectBleClient:
         self._reset_idle_timer()
 
     async def disconnect(self) -> None:
+        self._shutting_down = True
+
         if self._idle_task is not None:
             self._idle_task.cancel()
             self._idle_task = None
@@ -35,6 +38,9 @@ class AutoDisconnectBleClient:
             await self.client.disconnect()
 
     def _reset_idle_timer(self) -> None:
+        if self._shutting_down:
+            return
+
         if self._idle_task is not None:
             self._idle_task.cancel()
 
@@ -43,6 +49,8 @@ class AutoDisconnectBleClient:
     async def _idle_disconnect(self) -> None:
         try:
             await asyncio.sleep(self.idle_timeout)
+            if self._shutting_down:
+                return
             if self.client.is_connected:
                 await self.client.disconnect()
         except asyncio.CancelledError:

@@ -14,7 +14,12 @@ class Thing:
 
         self.client = None
 
-        
+    async def cleanup(self):
+        # Disconnect cleanly form device before shutdown
+        if self.client != None:
+            await self.client.disconnect()
+
+    
     async def read(self, attributeName: str):
         ################
         # Extract Forms
