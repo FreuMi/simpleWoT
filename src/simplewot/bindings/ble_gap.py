@@ -22,21 +22,34 @@ async def get_gap_advertisement(target_mac: str) -> bytes | None:
     def read_once_callback(device: BLEDevice, adv_data: AdvertisementData) -> None:
         nonlocal value 
         
-        if device.address.lower() == target_mac.lower():
-            if adv_data.manufacturer_data:
-                for company_id, raw_bytes in adv_data.manufacturer_data.items():                    
-                    # Store the hex payload in the outer variable
-                    value = raw_bytes
-                    break 
+        if device.address.lower() != target_mac.lower():
+            return
+        
+        if not adv_data.manufacturer_data:
+            return
+        
+        for company_id, raw_bytes in adv_data.manufacturer_data.items():                    
+            # Store the hex payload in the outer variable
+            value = raw_bytes
+            break 
                 
-                found_event.set()
+        found_event.set()
     
-    async with BleakScanner(read_once_callback):
+    scanner = BleakScanner(detection_callback=read_once_callback)
+
+    try:
+        await scanner.start()
         try:
-            # Wait for the event to be triggered, but give up after 20 seconds
             await asyncio.wait_for(found_event.wait(), timeout=TIME_OUT)
-            
         except asyncio.TimeoutError:
-            print(f"\nTimeout: Did not hear from {target_mac} within 20 seconds.")
-            
+            print(f"Timeout: Did not hear from {target_mac} within {TIME_OUT} seconds.")
+        except asyncio.CancelledError:
+            # request was cancelled from outside (e.g. HTTP timeout)
+            raise
+    finally:
+        try:
+            await asyncio.shield(scanner.stop())
+        except Exception as e:
+            print(f"scanner.stop() failed: {e}")
+
     return value
