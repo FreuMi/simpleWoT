@@ -7,7 +7,7 @@ name = "simpleWoT"
 version = "0.1.0"
 description = "A simple WoT library"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "bleak==2.1.1",
     "dbus-fast==4.0.0",
