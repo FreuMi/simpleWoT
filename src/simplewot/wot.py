@@ -1,8 +1,8 @@
 from . import td_parser
 from rdflib import Literal
-from .bindings import ble_gap
-from .bindings import ble_gatt
-from .codecs import binary_codec
+from .bindings import ble_gap, ble_gatt, http
+from .codecs import binary_codec, json_codec
+
 
 class Thing:
     def __init__(self, td_identifier: str):
@@ -41,9 +41,12 @@ class Thing:
 
             elif forms["methodName"].lower() == "read":
                 raw_bytes = await self.client.read(forms)
+        
+        elif (protocol == "http" or protocol == "https"):
+            raw_bytes = http.get(forms)
 
         else:
-            print("Protocol not supported.")
+            raise Exception("Protocol1 not supported.")
 
         # Check if successfull
         if raw_bytes == None:
@@ -53,6 +56,8 @@ class Thing:
         data = None
         if forms["contentType"] == "application/x.binary-data-stream":
             data = binary_codec.decode(raw_bytes, self.td_graph, attributeName)
+        elif forms["contentType"] == "application/json":
+            data = json_codec.decode(raw_bytes, self.td_graph, attributeName)
         else:
             print("Content-Type not supported")
             raise Exception()
