@@ -1,5 +1,5 @@
 from . import td_parser
-from rdflib import Literal
+from rdflib import Literal, URIRef
 from .bindings import ble_gap, ble_gatt, http
 from .codecs import binary_codec, json_codec
 
@@ -13,6 +13,25 @@ class Thing:
         self.td_graph = td_parser.add_td_defaults(td_graph)
 
         self.client = None
+
+
+    #####################################################################
+    # Graph helper functions
+    def get_name(self):
+        predicate = URIRef("https://www.w3.org/2019/wot/td#title")
+
+        name = None
+        for _, _, o in self.td_graph.triples((None, predicate, None)):
+            name = str(o)
+
+        if name == None:
+            return "thing1"
+        else:
+            return name
+
+    def get_ttl_td(self):
+        return self.td_graph.serialize()
+
 
     async def cleanup(self):
         # Disconnect cleanly form device before shutdown
