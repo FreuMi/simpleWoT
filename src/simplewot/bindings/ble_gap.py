@@ -3,6 +3,9 @@ from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
+# Global lock to prevent concurrent BlueZ scan operations
+scan_lock = asyncio.Lock()
+
 async def listen(forms) -> bytes | None:
     # MAC is in gap everything behind ://
     target_mac = forms["target"].split("://")[1].replace("-",":")
@@ -35,21 +38,24 @@ async def get_gap_advertisement(target_mac: str) -> bytes | None:
                 
         found_event.set()
     
-    scanner = BleakScanner(detection_callback=read_once_callback)
+    async with scan_lock:
+        scanner = BleakScanner(detection_callback=read_once_callback)
 
-    try:
-        await scanner.start()
         try:
-            await asyncio.wait_for(found_event.wait(), timeout=TIME_OUT)
-        except asyncio.TimeoutError:
-            print(f"Timeout: Did not hear from {target_mac} within {TIME_OUT} seconds.")
-        except asyncio.CancelledError:
-            # request was cancelled from outside (e.g. HTTP timeout)
-            raise
-    finally:
-        try:
-            await asyncio.shield(scanner.stop())
-        except Exception as e:
-            print(f"scanner.stop() failed: {e}")
+            await scanner.start()
+            try:
+                await asyncio.wait_for(found_event.wait(), timeout=TIME_OUT)
+            except asyncio.TimeoutError:
+                print(f"Timeout: Did not hear from {target_mac} within {TIME_OUT} seconds.")
+            except asyncio.CancelledError:
+                # request was cancelled from outside (e.g. HTTP timeout)
+                raise
+        finally:
+            # Short delay to finish any D-Bus operations
+            await asyncio.sleep(0.1)
+            try:
+                await asyncio.shield(scanner.stop())
+            except Exception as e:
+                print(f"scanner.stop() failed: {e}")
 
-    return value
+        return value
