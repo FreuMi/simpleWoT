@@ -18,7 +18,7 @@ async def listen(forms) -> bytes | None:
 async def get_gap_advertisement(target_mac: str) -> bytes | None:
     # Create an event flag
     found_event = asyncio.Event()
-    TIME_OUT = 20.0 # Scan time out to 20s
+    TIME_OUT = 15.0 # Scan time out to 15s
     value = None
 
     # Define the callback
