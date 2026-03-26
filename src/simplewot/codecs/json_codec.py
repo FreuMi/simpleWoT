@@ -6,3 +6,11 @@ def decode(raw_bytes: bytes, td_graph: Graph, attributeName: str):
     data = json.loads(data_string)
 
     return data
+
+
+def encode(data: dict, td_graph: Graph, attributeName: str) -> bytes:
+    data_string = json.dumps(data)
+
+    raw_bytes = data_string.encode("utf-8")
+
+    return raw_bytes

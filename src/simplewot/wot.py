@@ -1,7 +1,7 @@
 from . import td_parser
 from rdflib import Literal, URIRef
-from .bindings import ble_gap, ble_gatt, http
-from .codecs import binary_codec, json_codec
+from .bindings import ble_gap, ble_gatt, http, local_file
+from .codecs import binary_codec, json_codec, text_codec
 
 
 class Thing:
@@ -64,6 +64,9 @@ class Thing:
         elif (protocol == "http" or protocol == "https"):
             raw_bytes = http.get(forms)
 
+        elif (protocol == "file"):
+            raw_bytes = local_file.read(forms)
+
         else:
             raise Exception("Protocol1 not supported.")
 
@@ -77,6 +80,8 @@ class Thing:
             data = binary_codec.decode(raw_bytes, self.td_graph, attributeName)
         elif forms["contentType"] == "application/json":
             data = json_codec.decode(raw_bytes, self.td_graph, attributeName)
+        elif forms["contentType"] == "text/plain":
+            data = text_codec.decode(raw_bytes, self.td_graph, attributeName)
         else:
             print("Content-Type not supported")
             raise Exception()
@@ -91,13 +96,17 @@ class Thing:
 
         ####### ENCODE DATA #######
         raw_bytes = None
-        if forms["contentType"] == "application/x.binary-data-stream":
+        if forms["contentType"].lower() == "application/x.binary-data-stream":
             raw_bytes = binary_codec.encode(value, self.td_graph, attributeName)
+        elif forms["contentType"].lower() == "application/json":
+            raw_bytes = json_codec.encode(value, self.td_graph, attributeName)
+        elif forms["contentType"] == "text/plain":
+            raw_bytes = text_codec.encode(value, self.td_graph, attributeName)
         else:
             print("Content-Type not supported")
             raise Exception()
         
-        ####### READ DATA #######
+        ####### WRITE DATA #######
         # Check protocol
         protocol = forms["target"].split("://")[0]
 
@@ -112,6 +121,8 @@ class Thing:
                 raw_bytes = await self.client.write(forms, raw_bytes, True)
             else:
                 raise Exception("Operation not supported.")
+        elif (protocol == "file"):
+            raw_bytes = local_file.write(forms, raw_bytes)
 
     def subscribe(self, attributeName: str):
         pass
