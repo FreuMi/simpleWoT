@@ -136,6 +136,12 @@ def encode(value, td_graph: Graph, attributeName: str):
     elif schema["type"].lower() == "numberschema":
         pass
 
+    elif schema["type"].lower() == "stringschema":
+        if schema["format"] == "hex":
+            raw_bytes = bytes.fromhex(str(value))
+            return raw_bytes
+
+
 ##########################################################################################
 def to_bool(value: str) -> bool:
         return value.strip().lower() == "true"
