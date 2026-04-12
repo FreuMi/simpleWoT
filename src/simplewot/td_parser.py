@@ -25,7 +25,7 @@ def fetch_td(uri: str) -> str:
 
     # Load data
     with urlopen(target) as f:
-        return f.read().decode("utf-8")
+        return f.read().decode("utf-8"), target
     
 
 def parse_td(rdf_data: str) -> Graph:

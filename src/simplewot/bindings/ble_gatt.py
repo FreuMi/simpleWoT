@@ -25,7 +25,6 @@ class AutoDisconnectBleClient:
     async def connect(self) -> None:
         if not self.client.is_connected:
             await self.client.connect()
-        # We REMOVED the timer reset from here, as the caller handles it now.
 
     async def disconnect(self) -> None:
         self._shutting_down = True

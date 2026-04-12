@@ -8,7 +8,7 @@ class Thing:
     def __init__(self, td_identifier: str):
 
         # Parse TD as init
-        td_string = td_parser.fetch_td(td_identifier)
+        td_string, self.td_location = td_parser.fetch_td(td_identifier)
         td_graph = td_parser.parse_td(td_string)
         self.td_graph = td_parser.add_td_defaults(td_graph)
 
@@ -43,6 +43,15 @@ class Thing:
         ################
         # Extract Forms
         forms = self.get_forms(attributeName)
+
+        # Handle relative file path
+        if forms["target"].startswith("."):
+            # New path = td path + rel. path
+            td_path = "/".join(self.td_location.split("/")[:-1])
+            relative_path = forms["target"].removeprefix("./")
+            absolute_path = f"{td_path}/{relative_path}"
+
+            forms["target"] = absolute_path
 
         ####### READ DATA #######
         # Check protocol
@@ -80,7 +89,7 @@ class Thing:
             data = binary_codec.decode(raw_bytes, self.td_graph, attributeName)
         elif forms["contentType"] == "application/json":
             data = json_codec.decode(raw_bytes, self.td_graph, attributeName)
-        elif forms["contentType"] == "text/plain":
+        elif forms["contentType"] == "text/plain" or forms["contentType"] == "text/csv":
             data = text_codec.decode(raw_bytes, self.td_graph, attributeName)
         else:
             print("Content-Type not supported")
@@ -104,7 +113,7 @@ class Thing:
             raw_bytes = binary_codec.encode(value, self.td_graph, attributeName)
         elif forms["contentType"].lower() == "application/json":
             raw_bytes = json_codec.encode(value, self.td_graph, attributeName)
-        elif forms["contentType"] == "text/plain":
+        elif forms["contentType"] == "text/plain" or forms["contentType"] == "text/csv":
             raw_bytes = text_codec.encode(value, self.td_graph, attributeName)
         else:
             raise Exception("Content-Type not supported")
