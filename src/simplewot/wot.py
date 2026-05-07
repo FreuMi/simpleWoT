@@ -138,6 +138,13 @@ class Thing:
                 raise Exception("Operation not supported.")
         elif (protocol == "file"):
             raw_bytes = local_file.write(forms, raw_bytes)
+        elif (protocol == "http" or protocol == "https"):
+            if forms["methodName"].lower() == "put":
+                raw_bytes = http.put(forms, raw_bytes)
+            else:
+                raise Exception("Operation not supported.")
+
+        return raw_bytes
 
     def subscribe(self, attributeName: str):
         pass

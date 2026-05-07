@@ -33,7 +33,7 @@ async def get_gap_advertisement(target_mac: str, manufacturer_id: int | None) ->
             return
         
         for company_id, raw_bytes in adv_data.manufacturer_data.items(): 
-            if manufacturer_id == None:               
+            if manufacturer_id == None:           
                 value = raw_bytes
                 found_event.set()
                 return 
