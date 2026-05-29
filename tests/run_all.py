@@ -12,7 +12,7 @@ def main() -> int:
     python = repo_root / ".venv" / "bin" / "python"
     python_executable = str(python if python.exists() else Path(sys.executable))
 
-    clients = sorted(tests_dir.glob("test_file_*/client.py"))
+    clients = sorted(tests_dir.glob("test_*/client.py"))
     if not clients:
         print("No test clients found.")
         return 1

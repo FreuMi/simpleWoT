@@ -1,0 +1,27 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1"
+    ],
+    "title": "httpJsonReadApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "readConfig": {
+            "type": "object",
+            "readOnly": true,
+            "description": "Returns JSON from an HTTP endpoint.",
+            "forms": [
+                {
+                    "href": "http://127.0.0.1:0/config",
+                    "contentType": "application/json"
+                }
+            ]
+        }
+    }
+}
