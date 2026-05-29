@@ -1,3 +1,3 @@
-from .wot import Thing
+from .wot import ConsumedThing, WoT, consume
 
-__all__ = ["Thing"]
+__all__ = ["ConsumedThing", "WoT", "consume"]

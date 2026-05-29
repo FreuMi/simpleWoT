@@ -1,0 +1,35 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1",
+        {
+            "bdo": "https://paul.ti.rw.fau.de/~jo00defe/ble/bdo#"
+        }
+    ],
+    "title": "actionInvokeApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "actions": {
+        "enable": {
+            "description": "Writes a fixed binary command.",
+            "input": {
+                "type": "integer",
+                "const": 40991,
+                "bdo:bitLength": 16,
+                "bdo:byteOrder": "big",
+                "bdo:signed": false
+            },
+            "forms": [
+                {
+                    "href": "./test_file",
+                    "contentType": "application/x.binary-data-stream"
+                }
+            ]
+        }
+    }
+}

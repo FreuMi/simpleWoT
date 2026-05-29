@@ -4,7 +4,17 @@ from .bindings import ble_gap, ble_gatt, http, local_file
 from .codecs import binary_codec, json_codec, text_codec
 
 
-class Thing:
+class WoT:
+    @staticmethod
+    def consume(td_identifier: str):
+        return ConsumedThing(td_identifier)
+
+
+def consume(td_identifier: str):
+    return WoT.consume(td_identifier)
+
+
+class ConsumedThing:
     def __init__(self, td_identifier: str):
 
         # Parse TD as init
@@ -47,10 +57,22 @@ class Thing:
             await self.client.disconnect()
 
     
-    async def read(self, attributeName: str):
+    async def read_property(self, property_name: str):
+        return await self._read_interaction(property_name, "property")
+
+    async def write_property(self, property_name: str, value):
+        await self._write_interaction(property_name, value, "property")
+
+    async def invoke_action(self, action_name: str, params=None):
+        await self._write_interaction(action_name, params, "action")
+
+    def subscribe_event(self, event_name: str):
+        raise NotImplementedError("Event subscription is not implemented yet.")
+
+    async def _read_interaction(self, attributeName: str, affordance_type: str):
         ################
         # Extract Forms
-        forms = self.get_forms(attributeName)
+        forms = self.get_forms(attributeName, affordance_type)
         forms = self._resolve_relative_target(forms)
 
         ####### READ DATA #######
@@ -98,10 +120,10 @@ class Thing:
         return data
 
             
-    async def write(self, attributeName: str, value = None):
+    async def _write_interaction(self, attributeName: str, value, affordance_type: str):
         ################
         # Extract Forms
-        forms = self.get_forms(attributeName)
+        forms = self.get_forms(attributeName, affordance_type)
         forms = self._resolve_relative_target(forms)
 
         # Check if value is provdied, else check for constant
@@ -138,17 +160,14 @@ class Thing:
             else:
                 raise Exception("Operation not supported.")
         elif (protocol == "file"):
-            raw_bytes = local_file.write(forms, raw_bytes)
+            local_file.write(forms, raw_bytes)
         elif (protocol == "http" or protocol == "https"):
             if forms["methodName"].lower() == "put":
-                raw_bytes = http.put(forms, raw_bytes)
+                http.put(forms, raw_bytes)
             else:
                 raise Exception("Operation not supported.")
 
-        return raw_bytes
-
-    def subscribe(self, attributeName: str):
-        pass
+        return None
 
 
     def get_constant(self, attributeName):
@@ -174,12 +193,29 @@ class Thing:
             schema_type = rows[0]["schemaType"].split("#")[-1]
             raw_value = rows[0]["const"]
             if schema_type.lower() == "stringschema":
-                value = str(raw_value)
-                return value
+                return str(raw_value)
+            elif schema_type.lower() == "integerschema":
+                return int(raw_value)
+            elif schema_type.lower() == "numberschema":
+                return float(raw_value)
             else:
                 raise Exception("cont type currently not supported.")
 
-    def get_forms(self, attributeName: str) -> dict:
+    def get_forms(self, attributeName: str, affordance_type: str | None = None) -> dict:
+        affordance_pattern = "?node td:name ?name ; td:hasForm ?form ."
+        if affordance_type == "property":
+            affordance_pattern = """
+            ?thing td:hasPropertyAffordance ?node .
+            ?node td:name ?name ;
+                    td:hasForm ?form .
+            """
+        elif affordance_type == "action":
+            affordance_pattern = """
+            ?thing td:hasActionAffordance ?node .
+            ?node td:name ?name ;
+                    td:hasForm ?form .
+            """
+
         forms_query = """
             PREFIX td:   <https://www.w3.org/2019/wot/td#>
             PREFIX hctl: <https://www.w3.org/2019/wot/hypermedia#>
@@ -187,8 +223,7 @@ class Thing:
 
             SELECT ?contentType ?operationType ?target ?methodName
             WHERE {
-            ?node td:name ?name ;
-                    td:hasForm ?form .
+            """ + affordance_pattern + """
 
             OPTIONAL { ?form hctl:forContentType ?contentType . }
             OPTIONAL { ?form hctl:hasOperationType ?operationType . }

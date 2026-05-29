@@ -5,7 +5,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from simplewot import Thing
+from simplewot import WoT
 
 
 EXPECTED_DATA = {
@@ -48,10 +48,10 @@ async def main():
     thread.start()
 
     runtime_td = write_runtime_td(test_dir, f"http://127.0.0.1:{server.server_port}/config")
-    thing = Thing(str(runtime_td))
+    thing = WoT.consume(str(runtime_td))
 
     try:
-        data = await thing.read("readConfig")
+        data = await thing.read_property("readConfig")
         assert data == EXPECTED_DATA, f"Expected {EXPECTED_DATA!r}, got {data!r}"
     finally:
         await thing.cleanup()

@@ -26,7 +26,7 @@ If you need broad WoT platform coverage, advanced protocol support, or the full 
 
 ## Highlights
 
-- Minimal async API centered on a single `Thing` class
+- Minimal async API centered on `WoT.consume()` and `ConsumedThing`
 - Supports TD sources from URLs, `file://` URIs, and local paths
 - Parses RDF-based TDs including JSON-LD and Turtle
 - Includes binary, JSON, and plain-text payload decoding
@@ -38,10 +38,10 @@ This project is an early, minimal implementation. It already works for a useful 
 
 Current notable limitations:
 
-- `Thing.read()` supports a single form per affordance.
-- `Thing.write()` currently supports `gatt://` and `file://` targets.
+- `ConsumedThing.read_property()` supports a single form per affordance.
+- `ConsumedThing.write_property()` currently supports `gatt://`, `http://`, `https://`, and `file://` targets.
 - HTTP support is read-only and only issues simple `GET` requests.
-- Event subscription is not implemented yet (`Thing.subscribe()` is a stub).
+- Event subscription is not implemented yet (`ConsumedThing.subscribe_event()` raises `NotImplementedError`).
 - Binary decoding is focused on object schemas with integer/number fields described via `bdo:*` metadata.
 - Binary encoding is limited compared to decoding and mainly supports integer values and hex-formatted strings.
 
@@ -68,7 +68,7 @@ pip install -e .
 
 ## Supported TD Inputs
 
-You can construct a `Thing` from:
+You can consume a TD from:
 
 - an `http://` or `https://` URL
 - a `file://` URI
@@ -88,11 +88,11 @@ Read measurements from the bundled Xiaomi thermometer TD:
 
 ```python
 import asyncio
-from simplewot import Thing
+from simplewot import WoT
 
 async def main():
-    thing = Thing("example_descriptions/xiaomiThermometer.td.json")
-    measurements = await thing.read("measurements")
+    thing = WoT.consume("example_descriptions/xiaomiThermometer.td.json")
+    measurements = await thing.read_property("measurements")
     print(measurements)
     await thing.cleanup()
 
@@ -107,11 +107,11 @@ For the Xiaomi thermometer example, `measurements` resolves to a Python `dict` c
 
 ```python
 import asyncio
-from simplewot import Thing
+from simplewot import WoT
 
 async def main():
-    thing = Thing("example_descriptions/ruuviAir.td.json")
-    sensors = await thing.read("sensors")
+    thing = WoT.consume("example_descriptions/ruuviAir.td.json")
+    sensors = await thing.read_property("sensors")
     print("Temperature:", sensors["temperature"])
     print("Humidity:", sensors["humidity"])
     await thing.cleanup()
@@ -121,35 +121,37 @@ asyncio.run(main())
 
 ### Invoke an action using a TD constant
 
-If a TD action input defines a `const`, `write()` can use it automatically when you omit the value:
+If a TD action input defines a `const`, `invoke_action()` can use it automatically when you omit the value:
 
 ```python
 import asyncio
-from simplewot import Thing
+from simplewot import WoT
 
 async def main():
-    thing = Thing("example_descriptions/xiaomiFlowerCare.td.json")
-    await thing.write("enable")
-    measurements = await thing.read("measurements")
+    thing = WoT.consume("example_descriptions/xiaomiFlowerCare.td.json")
+    await thing.invoke_action("enable")
+    measurements = await thing.read_property("measurements")
     print(measurements)
     await thing.cleanup()
 
 asyncio.run(main())
 ```
 
-### Provide an explicit write value
+### Provide an explicit property write value
 
 ```python
-await thing.write("someActionOrProperty", value)
+await thing.write_property("someProperty", value)
 ```
 
 ## API Overview
 
-### `Thing(td_identifier: str)`
+### `WoT.consume(td_identifier: str)`
 
 Loads the TD, parses it into an RDF graph, and applies a few WoT default values such as missing content types and default operation types.
 
-### `await thing.read(attributeName: str)`
+Returns a `ConsumedThing`.
+
+### `await thing.read_property(property_name: str)`
 
 Finds the affordance form, fetches raw bytes through the matching binding, and decodes the payload based on the declared content type.
 
@@ -159,11 +161,13 @@ Supported content types:
 - `application/json`
 - `text/plain`
 
-### `await thing.write(attributeName: str, value=None)`
+### `await thing.write_property(property_name: str, value)`
 
 Encodes a value using the affordance schema and writes it through the selected binding.
 
-If `value` is omitted, the implementation tries to read a constant input value from the TD action schema.
+### `await thing.invoke_action(action_name: str, params=None)`
+
+Invokes an action affordance. If `params` is omitted, the implementation tries to read a constant input value from the TD action schema.
 
 ### `await thing.cleanup()`
 

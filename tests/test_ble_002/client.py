@@ -3,7 +3,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from simplewot import Thing
+from simplewot import WoT
 from simplewot.bindings import ble_gatt
 
 
@@ -108,17 +108,17 @@ async def main():
     ble_gatt.AutoDisconnectBleClient = FakeBleClient
     FakeBleClient.instances.clear()
     runtime_td = write_runtime_td()
-    thing = Thing(str(runtime_td))
+    thing = WoT.consume(str(runtime_td))
 
     try:
-        read_data = await thing.read("readConfig")
+        read_data = await thing.read_property("readConfig")
         assert read_data == {"source": "read"}
 
-        notify_data = await thing.read("notifyConfig")
+        notify_data = await thing.read_property("notifyConfig")
         assert notify_data == "notified"
 
-        await thing.write("writeConfig", WRITE_VALUE)
-        await thing.write("writeNoResponseConfig", WRITE_VALUE)
+        await thing.write_property("writeConfig", WRITE_VALUE)
+        await thing.write_property("writeNoResponseConfig", WRITE_VALUE)
 
         assert len(FakeBleClient.instances) == 1
         fake = FakeBleClient.instances[0]

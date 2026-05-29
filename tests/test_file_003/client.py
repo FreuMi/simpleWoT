@@ -1,6 +1,6 @@
 import asyncio
 
-from simplewot import Thing
+from simplewot import WoT
 
 
 EXPECTED_DATA = {
@@ -11,10 +11,10 @@ EXPECTED_DATA = {
 
 
 async def main():
-    thing = Thing("tests/test_file_003/td.json")
+    thing = WoT.consume("tests/test_file_003/td.json")
 
     try:
-        data = await thing.read("readConfig")
+        data = await thing.read_property("readConfig")
         assert data == EXPECTED_DATA, f"Expected {EXPECTED_DATA!r}, got {data!r}"
     finally:
         await thing.cleanup()

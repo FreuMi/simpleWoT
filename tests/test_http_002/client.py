@@ -5,7 +5,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from simplewot import Thing
+from simplewot import WoT
 
 
 WRITE_DATA = {
@@ -61,10 +61,10 @@ async def main():
     thread.start()
 
     runtime_td = write_runtime_td(test_dir, f"http://127.0.0.1:{server.server_port}/config")
-    thing = Thing(str(runtime_td))
+    thing = WoT.consume(str(runtime_td))
 
     try:
-        await thing.write("writeConfig", WRITE_DATA)
+        await thing.write_property("writeConfig", WRITE_DATA)
 
         assert len(REQUESTS) == 1, f"Expected one request, got {len(REQUESTS)}"
         request = REQUESTS[0]
