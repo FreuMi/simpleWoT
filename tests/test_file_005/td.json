@@ -1,0 +1,54 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1",
+        {
+            "bdo": "https://paul.ti.rw.fau.de/~jo00defe/ble/bdo#"
+        }
+    ],
+    "title": "localBinaryReadApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "readConfig": {
+            "type": "object",
+            "readOnly": true,
+            "description": "Returns decoded binary content from test_file.",
+            "properties": {
+                "temperature": {
+                    "type": "number",
+                    "bdo:bitOffset": 0,
+                    "bdo:bitLength": 16,
+                    "bdo:byteOrder": "little",
+                    "bdo:signed": true,
+                    "bdo:scale": 0.01
+                },
+                "humidity": {
+                    "type": "integer",
+                    "bdo:bitOffset": 16,
+                    "bdo:bitLength": 8,
+                    "bdo:signed": false
+                },
+                "voltage": {
+                    "type": "integer",
+                    "bdo:bitOffset": 24,
+                    "bdo:bitLength": 16,
+                    "bdo:byteOrder": "big",
+                    "bdo:signed": false,
+                    "bdo:valueAdd": 1000
+                }
+            },
+            "forms": [
+                {
+                    "href": "./test_file",
+                    "contentType": "application/x.binary-data-stream"
+                }
+            ]
+        }
+    }
+}

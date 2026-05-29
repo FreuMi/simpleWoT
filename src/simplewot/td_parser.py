@@ -1,8 +1,16 @@
+import json
+from importlib import resources
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 import rdflib
 from rdflib import Graph
+
+TD_CONTEXT_URLS = {
+    "https://www.w3.org/2022/wot/td/v1.1",
+    "http://www.w3.org/2022/wot/td/v1.1",
+}
+
 
 def fetch_td(uri: str) -> str:
     """
@@ -28,6 +36,42 @@ def fetch_td(uri: str) -> str:
         return f.read().decode("utf-8"), target
     
 
+def _load_local_context() -> dict:
+    with resources.files("simplewot").joinpath("context.json").open(encoding="utf-8") as f:
+        context_document = json.load(f)
+
+    return context_document["@context"]
+
+
+def _replace_wot_context_urls(value, local_context: dict):
+    if isinstance(value, str):
+        if value in TD_CONTEXT_URLS:
+            return local_context
+        return value
+
+    if isinstance(value, list):
+        return [_replace_wot_context_urls(item, local_context) for item in value]
+
+    if isinstance(value, dict):
+        return {
+            key: _replace_wot_context_urls(item, local_context) if key == "@context" else item
+            for key, item in value.items()
+        }
+
+    return value
+
+
+def _parse_json_ld_with_local_context(rdf_data: str) -> Graph:
+    td_document = json.loads(rdf_data)
+    local_context = _load_local_context()
+    offline_document = _replace_wot_context_urls(td_document, local_context)
+
+    rdf_graph = rdflib.Graph()
+    rdf_graph.parse(data=json.dumps(offline_document), format="json-ld")
+
+    return rdf_graph
+
+
 def parse_td(rdf_data: str) -> Graph:
     """
     Parse RDF string into an rdflib Graph.
@@ -52,7 +96,16 @@ def parse_td(rdf_data: str) -> Graph:
             #print(f"Successfully parsed input data as {format}.")
             break
         except Exception as e:
-            print(f"Attempt to parse as '{format}' failed: {e}")
+            if format == "json-ld":
+                try:
+                    rdf_graph = _parse_json_ld_with_local_context(rdf_data)
+                    parsed_successfully = True
+                    break
+                except Exception as fallback_error:
+                    print(f"Attempt to parse as '{format}' failed: {e}")
+                    print(f"Attempt to parse as 'json-ld' with local context failed: {fallback_error}")
+            else:
+                print(f"Attempt to parse as '{format}' failed: {e}")
             continue
 
     if not parsed_successfully:

@@ -116,6 +116,9 @@ def encode(value, td_graph: Graph, attributeName: str):
     if schema["type"] == None:
         schema = get_action_schema(td_graph, attributeName)
 
+    if schema["type"].lower() == "objectschema":
+        return encode_object(value, schema)
+
     # Add defaults
     if schema["byteOrder"] == None:
         schema["byteOrder"] = "little"
@@ -140,6 +143,87 @@ def encode(value, td_graph: Graph, attributeName: str):
         if schema["format"] == "hex":
             raw_bytes = bytes.fromhex(str(value))
             return raw_bytes
+
+
+def encode_object(value: dict, schema: dict) -> bytes:
+    if not isinstance(value, dict):
+        raise ValueError("ObjectSchema binary encoding requires a dict value")
+
+    properties = schema["properties"]
+    total_bits = 0
+    for property_name, prop in properties.items():
+        if property_name not in value:
+            raise ValueError(f"Missing value for binary field: {property_name}")
+
+        validate_byte_aligned_field(property_name, prop)
+        total_bits = max(total_bits, prop["bitOffset"] + prop["bitLength"])
+
+    raw_bytes = bytearray((total_bits + 7) // 8)
+
+    for property_name, prop in properties.items():
+        encoded_field = encode_number_or_int(value[property_name], prop)
+        byte_offset = prop["bitOffset"] // 8
+        byte_length = prop["bitLength"] // 8
+        raw_bytes[byte_offset:byte_offset + byte_length] = encoded_field
+
+    return bytes(raw_bytes)
+
+
+def validate_byte_aligned_field(property_name: str, field: dict):
+    if "fragments" in field:
+        raise ValueError(f"Fragmented binary field encoding is not supported: {property_name}")
+
+    bit_offset = field.get("bitOffset")
+    bit_length = field.get("bitLength")
+
+    if isinstance(bit_offset, list) or isinstance(bit_length, list):
+        raise ValueError(f"Multi-offset binary field encoding is not supported: {property_name}")
+
+    if bit_offset is None or bit_length is None:
+        raise ValueError(f"Binary field requires bitOffset and bitLength: {property_name}")
+
+    if bit_offset % 8 != 0 or bit_length % 8 != 0:
+        raise ValueError(f"Binary field encoding must be byte-aligned: {property_name}")
+
+
+def encode_number_or_int(value, field: dict) -> bytes:
+    prop_type = field["type"].lower()
+    if prop_type not in {"integerschema", "numberschema"}:
+        raise ValueError(f"Unsupported property type: {field['type']}")
+
+    raw_value = value
+    if "valueAdd" in field:
+        raw_value -= field["valueAdd"]
+    if "scale" in field:
+        raw_value /= field["scale"]
+
+    raw_value = int(round(raw_value))
+
+    bit_length = field["bitLength"]
+    signed = field.get("signed", False)
+    validate_int_range(raw_value, bit_length, signed)
+
+    byte_order = field.get("byteOrder", "little").lower()
+    if byte_order in {"little", "littleendian"}:
+        order = "little"
+    elif byte_order in {"big", "bigendian"}:
+        order = "big"
+    else:
+        raise ValueError(f"Unsupported byteOrder: {byte_order}")
+
+    return raw_value.to_bytes(bit_length // 8, byteorder=order, signed=signed)
+
+
+def validate_int_range(value: int, bit_length: int, signed: bool):
+    if signed:
+        min_value = -(1 << (bit_length - 1))
+        max_value = (1 << (bit_length - 1)) - 1
+    else:
+        min_value = 0
+        max_value = (1 << bit_length) - 1
+
+    if not min_value <= value <= max_value:
+        raise ValueError(f"Value {value} does not fit in {bit_length} bits")
 
 
 ##########################################################################################

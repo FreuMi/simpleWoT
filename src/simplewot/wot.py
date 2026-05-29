@@ -32,6 +32,14 @@ class Thing:
     def get_ttl_td(self):
         return self.td_graph.serialize()
 
+    def _resolve_relative_target(self, forms: dict) -> dict:
+        if forms["target"].startswith("."):
+            td_path = "/".join(self.td_location.split("/")[:-1])
+            relative_path = forms["target"].removeprefix("./")
+            forms["target"] = f"{td_path}/{relative_path}"
+
+        return forms
+
 
     async def cleanup(self):
         # Disconnect cleanly form device before shutdown
@@ -43,15 +51,7 @@ class Thing:
         ################
         # Extract Forms
         forms = self.get_forms(attributeName)
-
-        # Handle relative file path
-        if forms["target"].startswith("."):
-            # New path = td path + rel. path
-            td_path = "/".join(self.td_location.split("/")[:-1])
-            relative_path = forms["target"].removeprefix("./")
-            absolute_path = f"{td_path}/{relative_path}"
-
-            forms["target"] = absolute_path
+        forms = self._resolve_relative_target(forms)
 
         ####### READ DATA #######
         # Check protocol
@@ -102,6 +102,7 @@ class Thing:
         ################
         # Extract Forms
         forms = self.get_forms(attributeName)
+        forms = self._resolve_relative_target(forms)
 
         # Check if value is provdied, else check for constant
         if value == None:

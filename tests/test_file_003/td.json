@@ -1,0 +1,27 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1"
+    ],
+    "title": "localJsonReadApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "readConfig": {
+            "type": "object",
+            "readOnly": true,
+            "description": "Returns the current JSON content of test_file.",
+            "forms": [
+                {
+                    "href": "./test_file",
+                    "contentType": "application/json"
+                }
+            ]
+        }
+    }
+}
