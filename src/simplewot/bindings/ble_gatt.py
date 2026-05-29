@@ -2,6 +2,9 @@ import asyncio
 from bleak import BleakClient
 
 
+DISCONNECT_TEARDOWN_ERRORS = (EOFError, BrokenPipeError, ConnectionError, OSError)
+
+
 def parse_forms_target(forms: dict) -> tuple[str, str, str]:
     split_forms = forms["target"].split("/")
     mac = split_forms[2].replace("-", ":")
@@ -30,8 +33,7 @@ class AutoDisconnectBleClient:
         self._shutting_down = True
         self._cancel_idle_timer()
 
-        if self.client.is_connected:
-            await self.client.disconnect()
+        await self._disconnect_best_effort()
 
     def _cancel_idle_timer(self) -> None:
         """Stops the disconnect countdown during active work."""
@@ -54,9 +56,18 @@ class AutoDisconnectBleClient:
                 return
             if self.client.is_connected:
                 print(f"Idle timeout reached. Disconnecting from {self.mac}")
-                await self.client.disconnect()
+                await self._disconnect_best_effort()
         except asyncio.CancelledError:
             pass
+
+    async def _disconnect_best_effort(self) -> None:
+        try:
+            if self.client.is_connected:
+                await self.client.disconnect()
+        except asyncio.CancelledError:
+            raise
+        except DISCONNECT_TEARDOWN_ERRORS as e:
+            print(f"BLE disconnect cleanup ignored for {self.mac}: {type(e).__name__}: {e}")
 
     async def read(self, forms: dict) -> bytes:
         mac, service, char = parse_forms_target(forms)

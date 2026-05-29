@@ -1,0 +1,34 @@
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix hctl: <https://www.w3.org/2019/wot/hypermedia#> .
+@prefix json-schema: <https://www.w3.org/2019/wot/json-schema#> .
+@prefix spa: <https://paul.ti.rw.fau.de/~jo00defe/voc/spa#> .
+
+<urn:simplewot:spa:turtleThing>
+    a td:Thing ;
+    td:title "spaTurtlePlanningApi" ;
+    td:hasPropertyAffordance <urn:simplewot:spa:outputVoltage> ;
+    td:hasActionAffordance <urn:simplewot:spa:target> .
+
+<urn:simplewot:spa:outputVoltage>
+    a td:PropertyAffordance, json-schema:IntegerSchema ;
+    td:name "outputVoltage" ;
+    json-schema:readOnly true ;
+    td:hasForm [
+        hctl:hasTarget "./test_file" ;
+        hctl:forContentType "application/json"
+    ] .
+
+<urn:simplewot:spa:target>
+    a td:ActionAffordance ;
+    td:name "target" ;
+    td:hasInputSchema [
+        a json-schema:StringSchema ;
+        json-schema:const "target"
+    ] ;
+    spa:precondition [
+        spa:numeric-equal ( <urn:simplewot:spa:outputVoltage> 5 )
+    ] ;
+    td:hasForm [
+        hctl:hasTarget "file:///tmp/simplewot-spa-turtle-target" ;
+        hctl:forContentType "text/plain"
+    ] .

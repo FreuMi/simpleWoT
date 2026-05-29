@@ -1,0 +1,72 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1",
+        {
+            "spa": "https://paul.ti.rw.fau.de/~jo00defe/voc/spa#"
+        }
+    ],
+    "title": "spaNumericAddApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "actions": {
+        "increase": {
+            "input": {
+                "@id": "urn:simplewot:spa:increaseInput",
+                "type": "integer",
+                "const": 2
+            },
+            "spa:effect": [
+                {
+                    "spa:assign": {
+                        "spa:numeric-add": {
+                            "@list": [
+                                0,
+                                {
+                                    "@id": "urn:simplewot:spa:increaseInput"
+                                }
+                            ]
+                        }
+                    },
+                    "spa:to": {
+                        "@id": "urn:simplewot:spa:counter"
+                    }
+                }
+            ],
+            "forms": [
+                {
+                    "href": "file:///tmp/simplewot-spa-increase",
+                    "contentType": "application/x.binary-data-stream"
+                }
+            ]
+        },
+        "target": {
+            "input": {
+                "@id": "urn:simplewot:spa:numericTargetInput",
+                "type": "string",
+                "const": "target"
+            },
+            "spa:precondition": {
+                "spa:numeric-equal": {
+                    "@list": [
+                        {
+                            "@id": "urn:simplewot:spa:counter"
+                        },
+                        2
+                    ]
+                }
+            },
+            "forms": [
+                {
+                    "href": "file:///tmp/simplewot-spa-numeric-target",
+                    "contentType": "text/plain"
+                }
+            ]
+        }
+    }
+}

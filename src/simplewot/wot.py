@@ -1,4 +1,4 @@
-from . import td_parser
+from . import spa, td_parser
 from rdflib import Literal, URIRef
 from .bindings import ble_gap, ble_gatt, http, local_file
 from .codecs import binary_codec, json_codec, text_codec
@@ -23,6 +23,7 @@ class ConsumedThing:
         self.td_graph = td_parser.add_td_defaults(td_graph)
 
         self.client = None
+        self._spa_state = {}
 
 
     #####################################################################
@@ -58,16 +59,123 @@ class ConsumedThing:
 
     
     async def read_property(self, property_name: str):
-        return await self._read_interaction(property_name, "property")
+        await self._ensure_preconditions(property_name, "property", [])
+        data = await self._read_interaction(property_name, "property")
+        self._record_property_state(property_name, data)
+        self._apply_effects(property_name, "property", data)
+        return data
 
     async def write_property(self, property_name: str, value):
+        await self._ensure_preconditions(property_name, "property", [])
         await self._write_interaction(property_name, value, "property")
+        self._record_property_state(property_name, value)
+        self._apply_effects(property_name, "property", value)
 
     async def invoke_action(self, action_name: str, params=None):
+        await self._ensure_preconditions(action_name, "action", [])
         await self._write_interaction(action_name, params, "action")
+        self._apply_effects(action_name, "action", self._interaction_value(action_name, "action", params))
 
     def subscribe_event(self, event_name: str):
         raise NotImplementedError("Event subscription is not implemented yet.")
+
+    async def _ensure_preconditions(self, interaction_name: str, affordance_type: str, stack: list[tuple[str, str]]):
+        key = (affordance_type, interaction_name)
+        if key in stack:
+            raise spa.PlanningError(f"Cyclic SPA precondition dependency for {affordance_type} {interaction_name}")
+
+        affordance = spa.affordance_node(self.td_graph, interaction_name, affordance_type)
+        if affordance is None:
+            return
+
+        for condition in spa.preconditions(self.td_graph, affordance):
+            await self._satisfy_condition(condition, stack + [key])
+            if not spa.condition_satisfied(condition, self._spa_state):
+                raise spa.PlanningError(f"Could not satisfy SPA precondition for {affordance_type} {interaction_name}")
+
+    async def _satisfy_condition(self, condition: spa.Condition, stack: list[tuple[str, str]]):
+        if spa.condition_satisfied(condition, self._spa_state):
+            return
+
+        for target in spa.condition_targets(condition):
+            if target not in self._spa_state:
+                property_name = spa.all_property_targets(self.td_graph).get(target)
+                if property_name is not None:
+                    await self._ensure_preconditions(property_name, "property", stack)
+                    data = await self._read_interaction(property_name, "property")
+                    self._record_property_state(property_name, data)
+                    self._apply_effects(property_name, "property", data)
+
+        if spa.condition_satisfied(condition, self._spa_state):
+            return
+
+        for provider_type, provider_name, effect in spa.all_interaction_effects(self.td_graph):
+            if (provider_type, provider_name) in stack:
+                continue
+            if effect.target not in spa.condition_targets(condition):
+                continue
+
+            await self._execute_planned_interaction(provider_name, provider_type, effect, stack)
+            if spa.condition_satisfied(condition, self._spa_state):
+                return
+
+        raise spa.PlanningError("Could not find interactions to satisfy SPA precondition")
+
+    async def _execute_planned_interaction(
+        self,
+        interaction_name: str,
+        affordance_type: str,
+        selected_effect: spa.Effect,
+        stack: list[tuple[str, str]],
+    ):
+        await self._ensure_preconditions(interaction_name, affordance_type, stack)
+
+        if affordance_type == "property":
+            value = spa.effect_value(selected_effect, self._spa_state)
+            await self._write_interaction(interaction_name, value, affordance_type)
+            self._record_property_state(interaction_name, value)
+            self._apply_effects(interaction_name, affordance_type, value)
+        elif affordance_type == "action":
+            value = self._interaction_value(interaction_name, affordance_type, None)
+            await self._write_interaction(interaction_name, value, affordance_type)
+            self._apply_effects(interaction_name, affordance_type, value)
+        else:
+            raise spa.PlanningError(f"Unsupported planned interaction type: {affordance_type}")
+
+    def _record_property_state(self, property_name: str, value):
+        affordance = spa.affordance_node(self.td_graph, property_name, "property")
+        if affordance is not None:
+            self._spa_state[str(affordance)] = value
+
+    def _apply_effects(self, interaction_name: str, affordance_type: str, value):
+        affordance = spa.affordance_node(self.td_graph, interaction_name, affordance_type)
+        if affordance is None:
+            return
+
+        inputs = self._interaction_inputs(interaction_name, affordance_type, value)
+        for effect in spa.effects(self.td_graph, affordance):
+            self._spa_state[effect.target] = spa.effect_value(effect, self._spa_state, inputs)
+
+    def _interaction_value(self, interaction_name: str, affordance_type: str, value):
+        if value is not None:
+            return value
+        if affordance_type == "action":
+            return self.get_constant(interaction_name)
+        return value
+
+    def _interaction_inputs(self, interaction_name: str, affordance_type: str, value) -> dict[str, object]:
+        if value is None:
+            return {}
+
+        affordance = spa.affordance_node(self.td_graph, interaction_name, affordance_type)
+        if affordance is None:
+            return {}
+
+        inputs = {str(affordance): value}
+        for input_schema in self.td_graph.objects(affordance, URIRef("https://www.w3.org/2019/wot/td#hasInputSchema")):
+            inputs[str(input_schema)] = value
+
+        return inputs
 
     async def _read_interaction(self, attributeName: str, affordance_type: str):
         ################

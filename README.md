@@ -30,6 +30,7 @@ If you need broad WoT platform coverage, advanced protocol support, or the full 
 - Supports TD sources from URLs, `file://` URIs, and local paths
 - Parses RDF-based TDs including JSON-LD and Turtle
 - Includes binary, JSON, and plain-text payload decoding
+- Can execute same-Thing SPA preconditions automatically before requested interactions
 - Ships with working BLE-oriented example TDs
 
 ## Status
@@ -44,6 +45,7 @@ Current notable limitations:
 - Event subscription is not implemented yet (`ConsumedThing.subscribe_event()` raises `NotImplementedError`).
 - Binary decoding is focused on object schemas with integer/number fields described via `bdo:*` metadata.
 - Binary encoding is limited compared to decoding and mainly supports integer values and hex-formatted strings.
+- SPA planning is currently single-Thing and supports a practical subset of conditions and effects.
 
 ## Requirements
 
@@ -168,6 +170,8 @@ Encodes a value using the affordance schema and writes it through the selected b
 ### `await thing.invoke_action(action_name: str, params=None)`
 
 Invokes an action affordance. If `params` is omitted, the implementation tries to read a constant input value from the TD action schema.
+
+If the requested interaction has SPA preconditions, `simpleWoT` tries to satisfy them first by reading properties or executing same-Thing interactions whose effects establish the required state. If no safe plan can be found, a `PlanningError` is raised.
 
 ### `await thing.cleanup()`
 

@@ -1,0 +1,42 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1",
+        {
+            "spa": "https://paul.ti.rw.fau.de/~jo00defe/voc/spa#"
+        }
+    ],
+    "title": "spaFailureApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "actions": {
+        "target": {
+            "input": {
+                "@id": "urn:simplewot:spa:failureTargetInput",
+                "type": "string",
+                "const": "target"
+            },
+            "spa:precondition": {
+                "spa:boolean-equal": {
+                    "@list": [
+                        {
+                            "@id": "urn:simplewot:spa:missingState"
+                        },
+                        true
+                    ]
+                }
+            },
+            "forms": [
+                {
+                    "href": "file:///tmp/simplewot-spa-failure-target",
+                    "contentType": "text/plain"
+                }
+            ]
+        }
+    }
+}

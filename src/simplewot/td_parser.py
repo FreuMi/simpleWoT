@@ -85,6 +85,7 @@ def parse_td(rdf_data: str) -> Graph:
     """
     supported_formats = ["json-ld", "turtle", "xml", "nt", "n3"]
     parsed_successfully = False
+    parse_errors = []
     for format in supported_formats:
         try:
             temp_graph = rdflib.Graph()
@@ -102,13 +103,15 @@ def parse_td(rdf_data: str) -> Graph:
                     parsed_successfully = True
                     break
                 except Exception as fallback_error:
-                    print(f"Attempt to parse as '{format}' failed: {e}")
-                    print(f"Attempt to parse as 'json-ld' with local context failed: {fallback_error}")
+                    parse_errors.append(f"Attempt to parse as '{format}' failed: {e}")
+                    parse_errors.append(f"Attempt to parse as 'json-ld' with local context failed: {fallback_error}")
             else:
-                print(f"Attempt to parse as '{format}' failed: {e}")
+                parse_errors.append(f"Attempt to parse as '{format}' failed: {e}")
             continue
 
     if not parsed_successfully:
+        for error in parse_errors:
+            print(error)
         raise TypeError(f"Input data could not be parsed in any supported RDF format: {supported_formats}")
     #print(f"Found {len(rdf_graph)} triples.")
 
