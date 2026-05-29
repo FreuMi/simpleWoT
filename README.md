@@ -6,10 +6,10 @@ It is built for practical WoT integrations rather than full framework complexity
 
 The current implementation includes built-in bindings for:
 
-- BLE GATT
-- BLE GAP advertisements
-- HTTP `GET`
-- local files
+- BLE GATT read, notify, and write
+- BLE GAP advertisement reads
+- HTTP property reads/writes and action invocation
+- local file reads and writes
 
 It is especially geared toward BLE sensor integrations such as the bundled examples in [`example_descriptions/`](/home/freumi/Desktop/simpleWoT/example_descriptions).
 
@@ -29,7 +29,9 @@ If you need broad WoT platform coverage, advanced protocol support, or the full 
 - Minimal async API centered on `WoT.consume()` and `ConsumedThing`
 - Supports TD sources from URLs, `file://` URIs, and local paths
 - Parses RDF-based TDs including JSON-LD and Turtle
-- Includes binary, JSON, and plain-text payload decoding
+- Includes binary, JSON, plain-text, and CSV-text payload decoding
+- Selects forms by requested WoT operation (`readProperty`, `writeProperty`, `invokeAction`)
+- Supports HTTP method defaults and explicit `htv:methodName` overrides
 - Can execute same-Thing SPA preconditions automatically before requested interactions
 - Ships with working BLE-oriented example TDs
 
@@ -39,9 +41,10 @@ This project is an early, minimal implementation. It already works for a useful 
 
 Current notable limitations:
 
-- `ConsumedThing.read_property()` supports a single form per affordance.
+- `ConsumedThing` supports only one matching form per requested operation.
 - `ConsumedThing.write_property()` currently supports `gatt://`, `http://`, `https://`, and `file://` targets.
-- HTTP support is read-only and only issues simple `GET` requests.
+- TD security schemes are parsed but not applied to transport requests.
+- `invoke_action()` does not decode or return action output yet.
 - Event subscription is not implemented yet (`ConsumedThing.subscribe_event()` raises `NotImplementedError`).
 - Binary decoding is focused on object schemas with integer/number fields described via `bdo:*` metadata.
 - Binary encoding is limited compared to decoding and mainly supports integer values and hex-formatted strings.
@@ -162,16 +165,42 @@ Supported content types:
 - `application/x.binary-data-stream`
 - `application/json`
 - `text/plain`
+- `text/csv`
 
 ### `await thing.write_property(property_name: str, value)`
 
-Encodes a value using the affordance schema and writes it through the selected binding.
+Finds the `writeProperty` form, encodes a value using the affordance schema, and writes it through the selected binding.
+
+Supported write targets:
+
+- `gatt://`
+- `http://`
+- `https://`
+- `file://`
 
 ### `await thing.invoke_action(action_name: str, params=None)`
 
-Invokes an action affordance. If `params` is omitted, the implementation tries to read a constant input value from the TD action schema.
+Finds the `invokeAction` form and invokes an action affordance. If `params` is omitted, the implementation tries to read a constant input value from the TD action schema.
+
+HTTP action invocation currently sends the encoded input payload but does not decode or return action output.
 
 If the requested interaction has SPA preconditions, `simpleWoT` tries to satisfy them first by reading properties or executing same-Thing interactions whose effects establish the required state. If no safe plan can be found, a `PlanningError` is raised.
+
+## Form and Method Selection
+
+`simpleWoT` selects forms by the requested WoT operation:
+
+- `read_property()` uses `td:readProperty`
+- `write_property()` uses `td:writeProperty`
+- `invoke_action()` uses `td:invokeAction`
+
+If a TD form explicitly defines `htv:methodName`, that method is used. For HTTP and HTTPS forms without `htv:methodName`, the runtime applies WoT HTTP Binding defaults:
+
+- `readProperty` -> `GET`
+- `writeProperty` -> `PUT`
+- `invokeAction` -> `POST`
+
+Explicit `op` annotations in TD forms are preserved. If more than one form matches the requested operation, the runtime raises an error because form ranking and preference selection are not implemented yet.
 
 ### `await thing.cleanup()`
 
@@ -184,6 +213,23 @@ Returns the TD title, or `"thing1"` if none is present.
 ### `thing.get_ttl_td()`
 
 Serializes the parsed TD graph.
+
+## Tests
+
+Run the repository test suite with:
+
+```bash
+.venv/bin/python tests/run_all.py
+```
+
+The suite uses standalone test cases under `tests/test_*/` and covers:
+
+- public API shape
+- local file read/write
+- text, CSV text, JSON, and binary payload handling
+- HTTP read/write/action method behavior
+- mocked BLE GAP and GATT behavior
+- SPA precondition planning
 
 ## License
 

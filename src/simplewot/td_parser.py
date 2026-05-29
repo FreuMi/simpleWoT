@@ -249,7 +249,7 @@ def add_td_defaults(td_graph: Graph) -> Graph:
             ?aff td:hasForm ?form ;
                 json-schema:readOnly true ;
                 json-schema:writeOnly false .
-            FILTER NOT EXISTS { ?form hctl:hasOperationType td:readProperty }
+            FILTER NOT EXISTS { ?form hctl:hasOperationType ?existingOp }
             } ;
 
             # readOnly=false, writeOnly=true -> writeProperty
@@ -261,7 +261,7 @@ def add_td_defaults(td_graph: Graph) -> Graph:
             ?aff td:hasForm ?form ;
                 json-schema:readOnly false ;
                 json-schema:writeOnly true .
-            FILTER NOT EXISTS { ?form hctl:hasOperationType td:writeProperty }
+            FILTER NOT EXISTS { ?form hctl:hasOperationType ?existingOp }
             } ;
 
             # readOnly=false, writeOnly=false -> both
@@ -274,7 +274,7 @@ def add_td_defaults(td_graph: Graph) -> Graph:
                 json-schema:readOnly false ;
                 json-schema:writeOnly false .
             VALUES ?op { td:readProperty td:writeProperty }
-            FILTER NOT EXISTS { ?form hctl:hasOperationType ?op }
+            FILTER NOT EXISTS { ?form hctl:hasOperationType ?existingOp }
             }
             """
         )
@@ -290,10 +290,8 @@ def add_td_defaults(td_graph: Graph) -> Graph:
             ?form hctl:hasOperationType td:invokeAction .
             }
             WHERE {
-            ?thing a td:Thing ;
-                    td:hasActionAffordance ?aff .
-            ?aff   a td:ActionAffordance ;
-                    td:hasForm ?form .
+            ?thing td:hasActionAffordance ?aff .
+            ?aff td:hasForm ?form .
             FILTER NOT EXISTS { ?form hctl:hasOperationType td:invokeAction }
             }
             """

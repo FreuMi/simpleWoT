@@ -1,0 +1,26 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1"
+    ],
+    "title": "httpDefaultWriteMethodApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "writeConfig": {
+            "type": "object",
+            "writeOnly": true,
+            "forms": [
+                {
+                    "href": "http://127.0.0.1:0/config",
+                    "contentType": "application/json"
+                }
+            ]
+        }
+    }
+}

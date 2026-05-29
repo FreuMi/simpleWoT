@@ -3,6 +3,13 @@ from rdflib import Literal, URIRef
 from .bindings import ble_gap, ble_gatt, http, local_file
 from .codecs import binary_codec, json_codec, text_codec
 
+TD = "https://www.w3.org/2019/wot/td#"
+HTTP_METHOD_DEFAULTS = {
+    "readProperty": "GET",
+    "writeProperty": "PUT",
+    "invokeAction": "POST",
+}
+
 
 class WoT:
     @staticmethod
@@ -180,7 +187,7 @@ class ConsumedThing:
     async def _read_interaction(self, attributeName: str, affordance_type: str):
         ################
         # Extract Forms
-        forms = self.get_forms(attributeName, affordance_type)
+        forms = self.get_forms(attributeName, affordance_type, "readProperty")
         forms = self._resolve_relative_target(forms)
 
         ####### READ DATA #######
@@ -201,7 +208,7 @@ class ConsumedThing:
                 raw_bytes = await self.client.read(forms)
         
         elif (protocol == "http" or protocol == "https"):
-            raw_bytes = http.get(forms)
+            raw_bytes = http.request(forms)
 
         elif (protocol == "file"):
             raw_bytes = local_file.read(forms)
@@ -231,7 +238,8 @@ class ConsumedThing:
     async def _write_interaction(self, attributeName: str, value, affordance_type: str):
         ################
         # Extract Forms
-        forms = self.get_forms(attributeName, affordance_type)
+        operation = "invokeAction" if affordance_type == "action" else "writeProperty"
+        forms = self.get_forms(attributeName, affordance_type, operation)
         forms = self._resolve_relative_target(forms)
 
         # Check if value is provdied, else check for constant
@@ -270,10 +278,7 @@ class ConsumedThing:
         elif (protocol == "file"):
             local_file.write(forms, raw_bytes)
         elif (protocol == "http" or protocol == "https"):
-            if forms["methodName"].lower() == "put":
-                http.put(forms, raw_bytes)
-            else:
-                raise Exception("Operation not supported.")
+            http.request(forms, raw_bytes)
 
         return None
 
@@ -309,7 +314,7 @@ class ConsumedThing:
             else:
                 raise Exception("cont type currently not supported.")
 
-    def get_forms(self, attributeName: str, affordance_type: str | None = None) -> dict:
+    def get_forms(self, attributeName: str, affordance_type: str | None = None, operation: str | None = None) -> dict:
         affordance_pattern = "?node td:name ?name ; td:hasForm ?form ."
         if affordance_type == "property":
             affordance_pattern = """
@@ -324,6 +329,12 @@ class ConsumedThing:
                     td:hasForm ?form .
             """
 
+        operation_filter = ""
+        init_bindings = {"name": Literal(attributeName)}
+        if operation is not None:
+            operation_filter = "FILTER (?operationType = ?requestedOperation)"
+            init_bindings["requestedOperation"] = URIRef(TD + operation)
+
         forms_query = """
             PREFIX td:   <https://www.w3.org/2019/wot/td#>
             PREFIX hctl: <https://www.w3.org/2019/wot/hypermedia#>
@@ -337,10 +348,11 @@ class ConsumedThing:
             OPTIONAL { ?form hctl:hasOperationType ?operationType . }
             OPTIONAL { ?form hctl:hasTarget ?target . }
             OPTIONAL { ?form htv:methodName ?methodName . }
+            """ + operation_filter + """
         }
         """
 
-        rows = self.td_graph.query(forms_query, initBindings={"name": Literal(attributeName)})
+        rows = self.td_graph.query(forms_query, initBindings=init_bindings)
 
         if len(rows) > 1:
             raise Exception(f"Found more than 1 form. Currently not supported.")
@@ -348,6 +360,20 @@ class ConsumedThing:
         if len(rows) < 1:
             raise Exception(f"Did not find any forms for affordance '{attributeName}'.")
         row = list(rows)[0]
-        forms = {"contentType": str(row.contentType), "operationType": str(row.operationType), "target": str(row.target), "methodName": str(row.methodName)}
+        forms = {
+            "contentType": str(row.contentType) if row.contentType is not None else None,
+            "operationType": str(row.operationType) if row.operationType is not None else None,
+            "target": str(row.target) if row.target is not None else None,
+            "methodName": str(row.methodName) if row.methodName is not None else None,
+        }
+        self._apply_default_method(forms, operation)
 
         return forms
+
+    def _apply_default_method(self, forms: dict, operation: str | None):
+        if forms["methodName"] is not None:
+            return
+
+        protocol = forms["target"].split("://")[0] if forms["target"] else None
+        if protocol in {"http", "https"} and operation in HTTP_METHOD_DEFAULTS:
+            forms["methodName"] = HTTP_METHOD_DEFAULTS[operation]
