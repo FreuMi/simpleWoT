@@ -4,15 +4,14 @@ import json
 from simplewot import WoT
 
 
-TD = "example_descriptions/xiaomiFlowerCare.td.json"
-
+TD = "example_descriptions/dateTimeService.td.json"
 
 async def main():
     thing = WoT.consume(TD)
 
     try:
-        measurements = await thing.read_property("measurements")
-        print(json.dumps(measurements, indent=2))
+        today = await thing.read_property("today")
+        print(today)
     finally:
         await thing.cleanup()
 
