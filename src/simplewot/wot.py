@@ -226,7 +226,7 @@ class ConsumedThing:
             data = binary_codec.decode(raw_bytes, self.td_graph, attributeName)
         elif forms["contentType"] == "application/json":
             data = json_codec.decode(raw_bytes, self.td_graph, attributeName)
-        elif forms["contentType"] == "text/plain" or forms["contentType"] == "text/csv":
+        elif forms["contentType"] in {"text/plain", "text/csv", "text/turtle"}:
             data = text_codec.decode(raw_bytes, self.td_graph, attributeName)
         else:
             print("Content-Type not supported")
@@ -252,7 +252,7 @@ class ConsumedThing:
             raw_bytes = binary_codec.encode(value, self.td_graph, attributeName)
         elif forms["contentType"].lower() == "application/json":
             raw_bytes = json_codec.encode(value, self.td_graph, attributeName)
-        elif forms["contentType"] == "text/plain" or forms["contentType"] == "text/csv":
+        elif forms["contentType"] in {"text/plain", "text/csv", "text/turtle"}:
             raw_bytes = text_codec.encode(value, self.td_graph, attributeName)
         else:
             raise Exception("Content-Type not supported")
