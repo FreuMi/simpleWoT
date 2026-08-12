@@ -1,0 +1,63 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1",
+        {
+            "spa": "https://paul.ti.rw.fau.de/~jo00defe/voc/spa#"
+        }
+    ],
+    "title": "spaJsonLdPlanningApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "actions": {
+        "prepare": {
+            "input": {
+                "@id": "urn:simplewot:spa:prepareInput",
+                "type": "string",
+                "const": "prepare"
+            },
+            "spa:effect": [
+                {
+                    "spa:assign": true,
+                    "spa:to": {
+                        "@id": "urn:simplewot:spa:ready"
+                    }
+                }
+            ],
+            "forms": [
+                {
+                    "href": "file:///tmp/simplewot-spa-prepare",
+                    "contentType": "text/plain"
+                }
+            ]
+        },
+        "target": {
+            "input": {
+                "@id": "urn:simplewot:spa:targetInput",
+                "type": "string",
+                "const": "target"
+            },
+            "spa:precondition": {
+                "spa:boolean-equal": {
+                    "@list": [
+                        {
+                            "@id": "urn:simplewot:spa:ready"
+                        },
+                        true
+                    ]
+                }
+            },
+            "forms": [
+                {
+                    "href": "file:///tmp/simplewot-spa-target",
+                    "contentType": "text/plain"
+                }
+            ]
+        }
+    }
+}

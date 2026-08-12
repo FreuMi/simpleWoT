@@ -1,23 +1,30 @@
 from urllib.request import Request, urlopen
 
-def get(forms: dict) -> bytes:
-    url = forms["target"]
 
-    with urlopen(url, timeout=10) as response:
-        body = response.read()
+def request(forms: dict, raw_bytes: bytes | None = None) -> bytes:
+    method = forms["methodName"].upper()
+    headers = {}
+    if raw_bytes is not None:
+        headers["Content-Type"] = forms["contentType"]
 
-    return body
-
-
-def put(forms: dict, raw_bytes: bytes) -> bytes:
     request = Request(
         forms["target"],
         data=raw_bytes,
-        method="PUT",
-        headers={"Content-Type": forms["contentType"]},
+        method=method,
+        headers=headers,
     )
 
     with urlopen(request, timeout=10) as response:
         body = response.read()
 
     return body
+
+
+def get(forms: dict) -> bytes:
+    return request(forms)
+
+
+def put(forms: dict, raw_bytes: bytes) -> bytes:
+    forms = dict(forms)
+    forms["methodName"] = "PUT"
+    return request(forms, raw_bytes)

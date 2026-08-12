@@ -1,0 +1,33 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1"
+    ],
+    "title": "operationAwareFormsApi",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "config": {
+            "type": "string",
+            "readOnly": false,
+            "writeOnly": false,
+            "forms": [
+                {
+                    "href": "./read_file",
+                    "contentType": "text/plain",
+                    "op": "readproperty"
+                },
+                {
+                    "href": "./write_file",
+                    "contentType": "text/plain",
+                    "op": "writeproperty"
+                }
+            ]
+        }
+    }
+}

@@ -4,6 +4,7 @@
     {
       "sbo": "https://paul.ti.rw.fau.de/~jo00defe/ble/sbo#",
       "bdo": "https://paul.ti.rw.fau.de/~jo00defe/ble/bdo#",
+      "spa": "https://paul.ti.rw.fau.de/~jo00defe/voc/spa#",
       "qudt": "https://qudt.org/schema/qudt/",
       "qudtUnit": "https://qudt.org/vocab/unit/"
     }
@@ -31,6 +32,16 @@
       "observable": false,
       "readOnly": true,
       "writeOnly": false,
+      "spa:precondition": {
+        "spa:boolean-equal": {
+          "@list": [
+            {
+              "@id": "urn:simplewot:xiaomiFlowerCare:readModeEnabled"
+            },
+            true
+          ]
+        }
+      },
       "properties": {
         "temperature": {
           "type": "number",
@@ -66,7 +77,7 @@
       },
       "forms": [
         {
-          "href": "gatt://5C-85-7E-B0-25-EB/00001204-0000-1000-8000-00805f9b34fb/00001a01-0000-1000-8000-00805f9b34fb",
+          "href": "gatt://5C-85-7E-B0-26-18/00001204-0000-1000-8000-00805f9b34fb/00001a01-0000-1000-8000-00805f9b34fb",
           "op": "readproperty",
           "htv:methodName": "read",
           "contentType": "application/x.binary-data-stream"
@@ -90,10 +101,18 @@
         "bdo:signed": false,
         "description": "The command '40991' enables read mode."
       },
+      "spa:effect": [
+        {
+          "spa:assign": true,
+          "spa:to": {
+            "@id": "urn:simplewot:xiaomiFlowerCare:readModeEnabled"
+          }
+        }
+      ],
 
       "forms": [
         {
-          "href": "gatt://5C-85-7E-B0-25-EB/00001204-0000-1000-8000-00805f9b34fb/00001a00-0000-1000-8000-00805f9b34fb",
+          "href": "gatt://5C-85-7E-B0-26-18/00001204-0000-1000-8000-00805f9b34fb/00001a00-0000-1000-8000-00805f9b34fb",
           "op": "invokeaction",
           "htv:methodName": "write",
           "contentType": "application/x.binary-data-stream"

@@ -1,0 +1,56 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1",
+        {
+            "unit": "http://qudt.org/2.1/vocab/unit#"
+        }
+    ],
+    "title": "DateAPI",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "today": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "result": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Current date (YYYY-MM-DD)"
+                }
+            },
+            "readOnly": true,
+            "description": "Returns the current date.",
+            "forms": [
+                {
+                    "href": "https://api.datesapi.net/today",
+                    "contentType": "application/json"
+                }
+            ]
+        },
+        "weeknumber": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "result": {
+                    "type": "integer",
+                    "description": "Current week number"
+                }
+            },
+            "readOnly": true,
+            "description": "Returns the current week number.",
+            "forms": [
+                {
+                    "href": "https://api.datesapi.net/weeknumber",
+                    "contentType": "application/json"
+                }
+            ]
+        }
+    }
+}

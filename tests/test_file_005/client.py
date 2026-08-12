@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 
-from simplewot import Thing
+from simplewot import WoT
 
 
 PLACEHOLDER_DATA = b"binary fixture placeholder\n"
@@ -18,10 +18,10 @@ async def main():
     test_file = test_dir / "test_file"
     test_file.write_bytes(FIXTURE_BYTES)
 
-    thing = Thing(str(test_dir / "td.json"))
+    thing = WoT.consume(str(test_dir / "td.json"))
 
     try:
-        data = await thing.read("readConfig")
+        data = await thing.read_property("readConfig")
         assert data == EXPECTED_DATA, f"Expected {EXPECTED_DATA!r}, got {data!r}"
     finally:
         await thing.cleanup()
